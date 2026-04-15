@@ -7,7 +7,9 @@ import { StyleSheet } from 'react-native';
 import AppNavigator from '@navigation/AppNavigator';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AIServiceProvider } from '@/contexts/AIServiceContext';
+import { OfflineProvider } from '@/contexts/OfflineContext';
 import LiveUpdateService from '@/services/update/LiveUpdateService';
+import OfflineBanner from '@/components/OfflineBanner';
 
 const App: React.FC = () => {
   // Initialize live update service on app launch
@@ -23,13 +25,16 @@ const App: React.FC = () => {
   return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <AIServiceProvider>
-            <NavigationContainer>
-              <AppNavigator />
-            </NavigationContainer>
-          </AIServiceProvider>
-        </ThemeProvider>
+        <OfflineProvider>
+          <ThemeProvider>
+            <AIServiceProvider>
+              <NavigationContainer>
+                <OfflineBanner />
+                <AppNavigator />
+              </NavigationContainer>
+            </AIServiceProvider>
+          </ThemeProvider>
+        </OfflineProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

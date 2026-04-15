@@ -14,14 +14,17 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAIService } from '@/contexts/AIServiceContext';
+import { useOffline } from '@/contexts/OfflineContext';
 import { spacing, typography, borderRadius } from '@constants/theme';
 import { ClaudeService } from '@services/ai/ClaudeService';
 import { OpenAIService } from '@services/ai/OpenAIService';
 import LiveUpdateService from '@/services/update/LiveUpdateService';
+import LocalCacheService from '@/services/offline/LocalCacheService';
 
 const SettingsScreen: React.FC = () => {
   const { theme, themeMode, toggleTheme } = useTheme();
   const { currentProvider, setProvider, aiService } = useAIService();
+  const { isOnline, isOffline, networkStatus } = useOffline();
 
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
@@ -39,12 +42,19 @@ const SettingsScreen: React.FC = () => {
     autoCheckEnabled: false,
   });
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
+  const [cacheStats, setCacheStats] = useState({
+    totalCodes: 0,
+    totalResponses: 0,
+    queuedRequests: 0,
+    cacheSize: '0 KB',
+  });
 
   // Load update status and GitHub token on mount
   useEffect(() => {
     loadUpdateStatus();
     loadGitHubToken();
     loadRateLimit();
+    loadCacheStats();
     const interval = setInterval(loadUpdateStatus, 5000); // Refresh every 5 seconds
     return () => clearInterval(interval);
   }, []);
@@ -141,6 +151,34 @@ const SettingsScreen: React.FC = () => {
               await loadRateLimit();
             } catch (error) {
               Alert.alert('Error', 'Failed to remove GitHub token');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const loadCacheStats = async () => {
+    const stats = await LocalCacheService.getCacheStats();
+    setCacheStats(stats);
+  };
+
+  const handleClearCache = async () => {
+    Alert.alert(
+      'Clear Offline Cache',
+      'This will delete all cached code and AI responses. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await LocalCacheService.clearAllCache();
+              await loadCacheStats();
+              Alert.alert('Success', 'Cache cleared successfully');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to clear cache');
             }
           },
         },
@@ -381,6 +419,94 @@ const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* Offline Mode Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Offline Mode</Text>
+
+          {/* Network Status */}
+          <View style={[styles.settingRow, { backgroundColor: theme.surface, marginBottom: spacing.sm }]}>
+            <View style={styles.settingLeft}>
+              <Icon
+                name={isOnline ? 'wifi-check' : 'wifi-off'}
+                size={24}
+                color={isOnline ? theme.success : theme.error}
+              />
+              <View>
+                <Text style={[styles.settingLabel, { color: theme.text }]}>
+                  {isOnline ? 'Online' : 'Offline'}
+                </Text>
+                <Text style={[styles.settingSubtext, { color: theme.textSecondary }]}>
+                  {networkStatus.type}
+                </Text>
+              </View>
+            </View>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: isOnline ? theme.success : theme.error },
+              ]}
+            />
+          </View>
+
+          {/* Cache Statistics */}
+          <View style={[styles.updateStatusContainer, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.apiKeyLabel, { color: theme.text, marginBottom: spacing.sm }]}>
+              Offline Cache
+            </Text>
+
+            <View style={styles.cacheStatRow}>
+              <Text style={[styles.cacheStatLabel, { color: theme.textSecondary }]}>
+                Cached Codes:
+              </Text>
+              <Text style={[styles.cacheStatValue, { color: theme.text }]}>
+                {cacheStats.totalCodes}
+              </Text>
+            </View>
+
+            <View style={styles.cacheStatRow}>
+              <Text style={[styles.cacheStatLabel, { color: theme.textSecondary }]}>
+                AI Responses:
+              </Text>
+              <Text style={[styles.cacheStatValue, { color: theme.text }]}>
+                {cacheStats.totalResponses}
+              </Text>
+            </View>
+
+            <View style={styles.cacheStatRow}>
+              <Text style={[styles.cacheStatLabel, { color: theme.textSecondary }]}>
+                Queued Requests:
+              </Text>
+              <Text style={[styles.cacheStatValue, { color: theme.text }]}>
+                {cacheStats.queuedRequests}
+              </Text>
+            </View>
+
+            <View style={styles.cacheStatRow}>
+              <Text style={[styles.cacheStatLabel, { color: theme.textSecondary }]}>
+                Cache Size:
+              </Text>
+              <Text style={[styles.cacheStatValue, { color: theme.text }]}>
+                {cacheStats.cacheSize}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.clearCacheButton, { borderColor: theme.error }]}
+              onPress={handleClearCache}
+            >
+              <Icon name="delete-sweep" size={20} color={theme.error} />
+              <Text style={[styles.clearCacheButtonText, { color: theme.error }]}>
+                Clear Cache
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={[styles.updateInfoText, { color: theme.textSecondary, marginTop: spacing.sm }]}>
+              Offline mode allows you to use the app without internet. Your work is saved locally
+              and synced when online.
+            </Text>
+          </View>
+        </View>
+
         {/* About Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>About</Text>
@@ -389,7 +515,7 @@ const SettingsScreen: React.FC = () => {
               <Icon name="information" size={24} color={theme.text} />
               <View>
                 <Text style={[styles.settingLabel, { color: theme.text }]}>Version</Text>
-                <Text style={[styles.settingSubtext, { color: theme.textSecondary }]}>2.0.0</Text>
+                <Text style={[styles.settingSubtext, { color: theme.textSecondary }]}>2.1.0</Text>
               </View>
             </View>
           </View>
@@ -550,6 +676,38 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     textAlign: 'center',
     textDecorationLine: 'underline',
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  cacheStatRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  cacheStatLabel: {
+    fontSize: typography.fontSize.sm,
+  },
+  cacheStatValue: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  clearCacheButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    marginTop: spacing.md,
+  },
+  clearCacheButtonText: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
   },
 });
 

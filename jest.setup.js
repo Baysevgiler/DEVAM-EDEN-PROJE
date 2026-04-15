@@ -56,3 +56,15 @@ jest.mock('react-native-fs', () => ({
 jest.mock('react-native-restart', () => ({
   Restart: jest.fn(),
 }));
+
+// Mock @react-native-community/netinfo
+jest.mock('@react-native-community/netinfo', () => ({
+  fetch: jest.fn(() =>
+    Promise.resolve({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi',
+    })
+  ),
+  addEventListener: jest.fn(() => jest.fn()),
+}));
