@@ -47,4 +47,12 @@ jest.mock('react-native-fs', () => ({
   moveFile: jest.fn(() => Promise.resolve()),
   copyFile: jest.fn(() => Promise.resolve()),
   stat: jest.fn(() => Promise.resolve({})),
+  downloadFile: jest.fn(() => ({
+    promise: Promise.resolve({ statusCode: 200 }),
+  })),
+}));
+
+// Mock react-native-restart
+jest.mock('react-native-restart', () => ({
+  Restart: jest.fn(),
 }));
