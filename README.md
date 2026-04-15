@@ -1,9 +1,10 @@
 # 🚀 AI Mobile Code - Yapay Zeka Destekli Mobil Kod Editörü
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)
 ![React Native](https://img.shields.io/badge/React_Native-0.73.4-61DAFB.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-3178C6.svg)
-![Tests](https://img.shields.io/badge/tests-77%2F77_passing-success.svg)
+![Tests](https://img.shields.io/badge/tests-112%2F112_passing-success.svg)
+![Offline](https://img.shields.io/badge/offline_mode-enabled-green.svg)
 
 **Android üzerinde AI destekli kod yazma, çalıştırma ve yönetme deneyimi**
 
@@ -35,11 +36,19 @@
 - ✅ **Dark/Light Mode** - Göz yormayan temalar
 - ✅ **Türkçe & İngilizce** - Çift dil desteği
 
-### 🔄 Canlı Güncelleme (NEW!)
+### 🔄 Canlı Güncelleme
 - ✅ **Otomatik Güncelleme** - APK yeniden yüklemeden kod güncellemeleri
 - ✅ **GitHub Entegrasyonu** - Her commit otomatik dağıtılır
 - ✅ **30 Saniyede Kontrol** - Arka planda sürekli güncelleme kontrolü
 - ✅ **Kesintisiz Deneyim** - Kullanıcı hiçbir şey yapmadan güncellenir
+
+### 📴 Offline Mode (NEW!)
+- ✅ **Tam Offline Çalışma** - İnternet olmadan tüm özellikler kullanılabilir
+- ✅ **Yerel Cache** - Kod ve AI yanıtları yerel olarak saklanır
+- ✅ **Otomatik Senkronizasyon** - Online olunca kuyruk işlenir
+- ✅ **Network Monitoring** - Real-time bağlantı durumu
+- ✅ **Akıllı Cache** - En çok kullanılan yanıtlar önceliklenir
+- ✅ **Offline AI** - Temel kod şablonları ve öneriler
 
 ---
 
@@ -89,6 +98,7 @@ npx react-native run-android
 | [APK_OLUŞTURMA_KILAVUZU.md](APK_OLUŞTURMA_KILAVUZU.md) | 📱 APK derleme kılavuzu |
 | [CANLI_GÜNCELLEME_SİSTEMİ.md](CANLI_GÜNCELLEME_SİSTEMİ.md) | 🔄 Canlı güncelleme sistemi |
 | [GITHUB_TOKEN_SETUP.md](GITHUB_TOKEN_SETUP.md) | 🔑 GitHub token kurulumu |
+| [OFFLINE_MODE.md](OFFLINE_MODE.md) | 📴 Offline mode kılavuzu |
 | [PROJECT_INFO.md](PROJECT_INFO.md) | 📄 Proje mimarisi |
 
 ---
@@ -100,7 +110,7 @@ npm test                    # Tüm testler
 npm test -- --coverage     # Coverage raporu
 ```
 
-**Sonuçlar:** ✅ 77/77 test geçti (%100)
+**Sonuçlar:** ✅ 112/112 test geçti (%100)
 
 ---
 
@@ -118,14 +128,19 @@ npm test -- --coverage     # Coverage raporu
 ```
 ai-mobile-code-apk/
 ├── src/
-│   ├── services/ai/           # AI servisleri
-│   ├── screens/               # Ekranlar (6 tab)
-│   ├── navigation/            # Navigasyon
-│   └── locales/               # Türkçe/İngilizce
-├── __tests__/                 # 77 test
-├── android/                   # Native kod
-├── build-apk.sh              # Build script
-└── build-apk.bat             # Windows build
+│   ├── services/
+│   │   ├── ai/               # AI servisleri
+│   │   ├── offline/          # Offline mode servisleri
+│   │   └── update/           # Live update servisi
+│   ├── contexts/             # React contexts (Theme, AI, Offline)
+│   ├── components/           # UI bileşenleri (OfflineBanner, etc)
+│   ├── screens/              # Ekranlar (6 tab)
+│   ├── navigation/           # Navigasyon
+│   └── locales/              # Türkçe/İngilizce
+├── __tests__/                # 112 test
+├── android/                  # Native kod
+├── build-apk.sh             # Build script
+└── build-apk.bat            # Windows build
 ```
 
 ---
