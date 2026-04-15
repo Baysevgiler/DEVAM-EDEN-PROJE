@@ -30,7 +30,13 @@ const GITHUB_BRANCH = 'main';
 const UPDATE_CHECK_INTERVAL = 30000; // 30 saniye
 const STORAGE_KEY_VERSION = '@app_current_version';
 const STORAGE_KEY_LAST_CHECK = '@app_last_update_check';
+const STORAGE_KEY_GITHUB_TOKEN = '@github_token';
 const BUNDLE_PATH = `${RNFS.DocumentDirectoryPath}/live-bundle.js`;
+
+// GitHub token for higher rate limits (optional)
+// Without token: 60 requests/hour
+// With token: 5000 requests/hour
+let GITHUB_TOKEN: string | null = null;
 
 class LiveUpdateService {
   private checkInterval: NodeJS.Timeout | null = null;
@@ -44,6 +50,9 @@ class LiveUpdateService {
     console.log('🔄 Live Update Service başlatılıyor...');
 
     try {
+      // GitHub token'ı yükle
+      await this.loadGitHubToken();
+
       // Mevcut versiyonu kontrol et
       const currentVersion = await this.getCurrentVersion();
       console.log(`📱 Mevcut versiyon: ${currentVersion}`);
@@ -164,11 +173,19 @@ class LiveUpdateService {
     try {
       const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/commits/${GITHUB_BRANCH}`;
 
-      const response = await fetch(apiUrl, {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
-        },
-      });
+      const headers: Record<string, string> = {
+        Accept: 'application/vnd.github.v3+json',
+      };
+
+      // GitHub token varsa ekle (5000 req/hour)
+      if (GITHUB_TOKEN) {
+        headers.Authorization = `token ${GITHUB_TOKEN}`;
+        console.log('🔑 GitHub token kullanılıyor (5000 req/hour)');
+      } else {
+        console.log('⚠️  GitHub token yok (60 req/hour limit)');
+      }
+
+      const response = await fetch(apiUrl, { headers });
 
       if (!response.ok) {
         throw new Error(`GitHub API hatası: ${response.status}`);
@@ -336,6 +353,92 @@ class LiveUpdateService {
   public cleanup(): void {
     this.stopAutoCheck();
     console.log('🧹 Live Update Service temizlendi');
+  }
+
+  /**
+   * GitHub token'ı yükle
+   */
+  private async loadGitHubToken(): Promise<void> {
+    try {
+      const token = await AsyncStorage.getItem(STORAGE_KEY_GITHUB_TOKEN);
+      if (token) {
+        GITHUB_TOKEN = token;
+        console.log('✅ GitHub token yüklendi');
+      }
+    } catch (error) {
+      console.error('❌ GitHub token yüklenemedi:', error);
+    }
+  }
+
+  /**
+   * GitHub token'ı kaydet
+   */
+  public async setGitHubToken(token: string): Promise<void> {
+    try {
+      if (token && token.trim()) {
+        await AsyncStorage.setItem(STORAGE_KEY_GITHUB_TOKEN, token.trim());
+        GITHUB_TOKEN = token.trim();
+        console.log('✅ GitHub token kaydedildi');
+      } else {
+        await AsyncStorage.removeItem(STORAGE_KEY_GITHUB_TOKEN);
+        GITHUB_TOKEN = null;
+        console.log('✅ GitHub token silindi');
+      }
+    } catch (error) {
+      console.error('❌ GitHub token kaydedilemedi:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * GitHub token'ı al (varsa)
+   */
+  public async getGitHubToken(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(STORAGE_KEY_GITHUB_TOKEN);
+    } catch (error) {
+      console.error('❌ GitHub token okunamadı:', error);
+      return null;
+    }
+  }
+
+  /**
+   * GitHub rate limit durumunu kontrol et
+   */
+  public async checkGitHubRateLimit(): Promise<{
+    limit: number;
+    remaining: number;
+    reset: Date;
+    authenticated: boolean;
+  } | null> {
+    try {
+      const headers: Record<string, string> = {
+        Accept: 'application/vnd.github.v3+json',
+      };
+
+      if (GITHUB_TOKEN) {
+        headers.Authorization = `token ${GITHUB_TOKEN}`;
+      }
+
+      const response = await fetch('https://api.github.com/rate_limit', { headers });
+
+      if (!response.ok) {
+        throw new Error(`GitHub API hatası: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const core = data.resources.core;
+
+      return {
+        limit: core.limit,
+        remaining: core.remaining,
+        reset: new Date(core.reset * 1000),
+        authenticated: !!GITHUB_TOKEN,
+      };
+    } catch (error) {
+      console.error('❌ GitHub rate limit kontrolü başarısız:', error);
+      return null;
+    }
   }
 }
 

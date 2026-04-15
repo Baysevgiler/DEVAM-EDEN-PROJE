@@ -25,6 +25,14 @@ const SettingsScreen: React.FC = () => {
 
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [githubToken, setGithubToken] = useState('');
+  const [showGithubToken, setShowGithubToken] = useState(false);
+  const [rateLimit, setRateLimit] = useState<{
+    limit: number;
+    remaining: number;
+    reset: Date;
+    authenticated: boolean;
+  } | null>(null);
   const [updateStatus, setUpdateStatus] = useState({
     isChecking: false,
     isUpdating: false,
@@ -32,9 +40,11 @@ const SettingsScreen: React.FC = () => {
   });
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
 
-  // Load update status on mount
+  // Load update status and GitHub token on mount
   useEffect(() => {
     loadUpdateStatus();
+    loadGitHubToken();
+    loadRateLimit();
     const interval = setInterval(loadUpdateStatus, 5000); // Refresh every 5 seconds
     return () => clearInterval(interval);
   }, []);
@@ -45,6 +55,18 @@ const SettingsScreen: React.FC = () => {
 
     const lastCheck = await LiveUpdateService.getLastCheckTime();
     setLastCheckTime(lastCheck);
+  };
+
+  const loadGitHubToken = async () => {
+    const token = await LiveUpdateService.getGitHubToken();
+    if (token) {
+      setGithubToken(token);
+    }
+  };
+
+  const loadRateLimit = async () => {
+    const limit = await LiveUpdateService.checkGitHubRateLimit();
+    setRateLimit(limit);
   };
 
   const handleSaveApiKey = async () => {
@@ -89,6 +111,41 @@ const SettingsScreen: React.FC = () => {
     if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
     const diffHours = Math.floor(diffMins / 60);
     return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  };
+
+  const handleSaveGitHubToken = async () => {
+    try {
+      await LiveUpdateService.setGitHubToken(githubToken);
+      Alert.alert('Success', 'GitHub token saved successfully');
+      await loadRateLimit();
+      setGithubToken('');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save GitHub token');
+      console.error('Save GitHub token error:', error);
+    }
+  };
+
+  const handleRemoveGitHubToken = async () => {
+    Alert.alert(
+      'Remove GitHub Token',
+      'Are you sure you want to remove the GitHub token?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await LiveUpdateService.setGitHubToken('');
+              Alert.alert('Success', 'GitHub token removed');
+              await loadRateLimit();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to remove GitHub token');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -239,6 +296,89 @@ const SettingsScreen: React.FC = () => {
                 : 'Enable auto-update to get the latest features automatically'}
             </Text>
           </View>
+
+          {/* GitHub Token Configuration */}
+          <View style={[styles.apiKeyContainer, { backgroundColor: theme.surface, marginTop: spacing.md }]}>
+            <View style={styles.githubTokenHeader}>
+              <Icon name="github" size={20} color={theme.text} />
+              <Text style={[styles.apiKeyLabel, { color: theme.text, marginLeft: spacing.xs }]}>
+                GitHub Token (Optional)
+              </Text>
+            </View>
+
+            {/* Rate Limit Info */}
+            {rateLimit && (
+              <View style={styles.rateLimitContainer}>
+                <Text style={[styles.rateLimitText, { color: theme.textSecondary }]}>
+                  {rateLimit.authenticated ? '🔑 Authenticated' : '⚠️  Not Authenticated'}
+                </Text>
+                <Text style={[styles.rateLimitText, { color: theme.textSecondary }]}>
+                  Rate Limit: {rateLimit.remaining}/{rateLimit.limit}
+                </Text>
+                <Text style={[styles.rateLimitText, { color: theme.textSecondary, fontSize: typography.fontSize.xs }]}>
+                  Resets: {rateLimit.reset.toLocaleTimeString()}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.apiKeyInputRow}>
+              <TextInput
+                style={[
+                  styles.apiKeyInput,
+                  {
+                    backgroundColor: theme.background,
+                    color: theme.text,
+                    borderColor: theme.border,
+                  },
+                ]}
+                value={githubToken}
+                onChangeText={setGithubToken}
+                placeholder="ghp_xxxxxxxxxxxx"
+                placeholderTextColor={theme.textSecondary}
+                secureTextEntry={!showGithubToken}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity onPress={() => setShowGithubToken(!showGithubToken)}>
+                <Icon
+                  name={showGithubToken ? 'eye-off' : 'eye'}
+                  size={24}
+                  color={theme.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.tokenButtonRow}>
+              <TouchableOpacity
+                style={[styles.saveButton, { backgroundColor: theme.primary, flex: 1, marginRight: spacing.xs }]}
+                onPress={handleSaveGitHubToken}
+              >
+                <Text style={styles.saveButtonText}>Save Token</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.removeTokenButton, { borderColor: theme.error, flex: 1, marginLeft: spacing.xs }]}
+                onPress={handleRemoveGitHubToken}
+              >
+                <Text style={[styles.removeTokenButtonText, { color: theme.error }]}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.tokenInfoText, { color: theme.textSecondary }]}>
+              Token increases rate limit from 60 to 5000 requests/hour
+            </Text>
+            <TouchableOpacity
+              onPress={() => Alert.alert(
+                'GitHub Token',
+                'Get your token from:\nhttps://github.com/settings/tokens\n\nRequired scope: public_repo',
+                [{ text: 'OK' }]
+              )}
+            >
+              <Text style={[styles.tokenLinkText, { color: theme.primary }]}>
+                How to get a token?
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* About Section */}
@@ -370,6 +510,46 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  githubTokenHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  rateLimitContainer: {
+    marginBottom: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: borderRadius.sm,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  rateLimitText: {
+    fontSize: typography.fontSize.sm,
+    marginBottom: 2,
+  },
+  tokenButtonRow: {
+    flexDirection: 'row',
+    marginTop: spacing.md,
+  },
+  removeTokenButton: {
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  removeTokenButtonText: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  tokenInfoText: {
+    fontSize: typography.fontSize.xs,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+  tokenLinkText: {
+    fontSize: typography.fontSize.sm,
+    marginTop: spacing.xs,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
 });
 

@@ -88,6 +88,7 @@ npx react-native run-android
 | [ENHANCED_FEATURES_SUMMARY.md](ENHANCED_FEATURES_SUMMARY.md) | 🇬🇧 İngilizce teknik detaylar |
 | [APK_OLUŞTURMA_KILAVUZU.md](APK_OLUŞTURMA_KILAVUZU.md) | 📱 APK derleme kılavuzu |
 | [CANLI_GÜNCELLEME_SİSTEMİ.md](CANLI_GÜNCELLEME_SİSTEMİ.md) | 🔄 Canlı güncelleme sistemi |
+| [GITHUB_TOKEN_SETUP.md](GITHUB_TOKEN_SETUP.md) | 🔑 GitHub token kurulumu |
 | [PROJECT_INFO.md](PROJECT_INFO.md) | 📄 Proje mimarisi |
 
 ---

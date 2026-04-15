@@ -332,4 +332,87 @@ describe('LiveUpdateService', () => {
       expect(status.currentVersion).toBe('1.2.3');
     });
   });
+
+  describe('GitHub Token Management', () => {
+    it('should save GitHub token', async () => {
+      const token = 'ghp_test123';
+      await LiveUpdateService.setGitHubToken(token);
+
+      const savedToken = await AsyncStorage.getItem('@github_token');
+      expect(savedToken).toBe(token);
+    });
+
+    it('should retrieve GitHub token', async () => {
+      const token = 'ghp_test456';
+      await AsyncStorage.setItem('@github_token', token);
+
+      const retrievedToken = await LiveUpdateService.getGitHubToken();
+      expect(retrievedToken).toBe(token);
+    });
+
+    it('should remove GitHub token when empty string provided', async () => {
+      await AsyncStorage.setItem('@github_token', 'ghp_old');
+      await LiveUpdateService.setGitHubToken('');
+
+      const token = await AsyncStorage.getItem('@github_token');
+      expect(token).toBeNull();
+    });
+
+    it('should use token in API requests when available', async () => {
+      const token = 'ghp_test789';
+      await LiveUpdateService.setGitHubToken(token);
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          sha: 'abc123',
+          commit: {
+            committer: {
+              date: '2024-01-01T00:00:00Z',
+            },
+            message: 'Test',
+          },
+        }),
+      });
+
+      await LiveUpdateService.initialize();
+
+      // Check if fetch was called with Authorization header
+      const fetchCalls = (global.fetch as jest.Mock).mock.calls;
+      const lastCall = fetchCalls[fetchCalls.length - 1];
+      expect(lastCall[1].headers.Authorization).toBe(`token ${token}`);
+    });
+  });
+
+  describe('GitHub Rate Limit', () => {
+    it('should check rate limit status', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          resources: {
+            core: {
+              limit: 5000,
+              remaining: 4999,
+              reset: 1640995200, // Unix timestamp
+            },
+          },
+        }),
+      });
+
+      const rateLimit = await LiveUpdateService.checkGitHubRateLimit();
+
+      expect(rateLimit).not.toBeNull();
+      expect(rateLimit?.limit).toBe(5000);
+      expect(rateLimit?.remaining).toBe(4999);
+      expect(rateLimit?.reset).toBeInstanceOf(Date);
+    });
+
+    it('should handle rate limit check errors', async () => {
+      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+
+      const rateLimit = await LiveUpdateService.checkGitHubRateLimit();
+
+      expect(rateLimit).toBeNull();
+    });
+  });
 });
