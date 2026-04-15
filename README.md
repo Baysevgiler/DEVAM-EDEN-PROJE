@@ -29,11 +29,17 @@
 - ✅ **Arama** - Tüm kodlarınızı bulun
 - ✅ **Favoriler** - Sık kullanılanları işaretleyin
 
-### 🛠️ Geliştirici Araçları  
+### 🛠️ Geliştirici Araçları
 - ✅ **Terminal** - npm, git, node komutları
 - ✅ **Paket Yöneticisi** - npm, pip, gem, composer
 - ✅ **Dark/Light Mode** - Göz yormayan temalar
 - ✅ **Türkçe & İngilizce** - Çift dil desteği
+
+### 🔄 Canlı Güncelleme (NEW!)
+- ✅ **Otomatik Güncelleme** - APK yeniden yüklemeden kod güncellemeleri
+- ✅ **GitHub Entegrasyonu** - Her commit otomatik dağıtılır
+- ✅ **30 Saniyede Kontrol** - Arka planda sürekli güncelleme kontrolü
+- ✅ **Kesintisiz Deneyim** - Kullanıcı hiçbir şey yapmadan güncellenir
 
 ---
 
@@ -81,6 +87,7 @@ npx react-native run-android
 | [GELİŞME_RAPORU.md](GELİŞME_RAPORU.md) | 🇹🇷 Türkçe özellik özeti |
 | [ENHANCED_FEATURES_SUMMARY.md](ENHANCED_FEATURES_SUMMARY.md) | 🇬🇧 İngilizce teknik detaylar |
 | [APK_OLUŞTURMA_KILAVUZU.md](APK_OLUŞTURMA_KILAVUZU.md) | 📱 APK derleme kılavuzu |
+| [CANLI_GÜNCELLEME_SİSTEMİ.md](CANLI_GÜNCELLEME_SİSTEMİ.md) | 🔄 Canlı güncelleme sistemi |
 | [PROJECT_INFO.md](PROJECT_INFO.md) | 📄 Proje mimarisi |
 
 ---
